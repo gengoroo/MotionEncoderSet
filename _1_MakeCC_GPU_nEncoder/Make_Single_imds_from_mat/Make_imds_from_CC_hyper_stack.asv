@@ -1,0 +1,61 @@
+% Make_imds_from_CC_hyper_stack
+
+% assemble CC_hyper_stack
+clear;
+fn_CC_hyper_stack = 1;
+fn_data = 1;
+pn_def = '';
+counter = 0;
+ListLabels = categorical;
+while(fn_data)
+    counter = counter + 1;
+    [fn_data, pn_data] = uigetfile([pn_def,'\CC_hyper_stack.mat'],'select CC_hyper_stack.mat from 1st Category');
+    pn_def = pn_data;
+    if fn_data~=0
+        List_fn_CC_hyper_stack{counter} = fn_data;
+        List_pn_CC_hyper_stack{counter} = pn_data;
+        ListLabels(counter) = input('Type Label\n','s');
+
+        load([pn_data '\' fn_data],'CC_stack');
+        SumData = reshape(sum(sum(sum(CC_stack{1},3),2),1),[],1);
+
+        nNeuron = size(CC_stack{1},3);
+        for id_neuron = 1:nNeuron
+            CC_stack_import{id_neuron} = [];
+            for id_file = 1:numel(CC_stack)
+                CC_stack_import{id_neuron} = cat(3,CC_stack_import{id_neuron},CC_stack{id_file}(:,:,id_neuron,SumData>0));
+            end
+        end
+        ImData{counter,id_neuron} = CC_stack_import{id_neuron};
+    end
+end
+
+% find row of classes
+function [id_start, id_end] = find_row(ImData,)
+id_neuron = 1;
+for id_class = 1:numel(ListLabels)
+    nData(id_class) = size(ImData{id_class,id_neuron},3);
+    if id_class  == 1
+        id_start(id_class) = 1;
+    else
+        id_start(id_class) = sum(nData(1:(id_class-1)))+1;
+    end
+    id_end(id_class) = sum(nData(1:id_class));
+end
+
+% make imds
+pn = 'D:\PTZ\20230710-4\crop_PTZ00uM\crop__int35000_50000_d35000_50000_int0_d_norm0.0011694';
+ImData_stack = [];
+Labels = categorical;
+for id_neuron = 1:nNeuron
+    for id_class = 1:numel(ListLabels)
+        range = id_start(id_class):id_end(id_class);
+        Labels(range) = ListLabels(id_class);% fill label
+        ImData_stack = cat(3,ImData_stack,ImData{id_class,id_neuron});
+    end
+    pn_save = [pn '\imds_each_neuron\Neuron' num2str(id_neuron)];
+    imds = make_imds_mat(ImData_stack,Labels,pn_save);
+    imds_stack{id_neuron} = imds;
+end
+
+

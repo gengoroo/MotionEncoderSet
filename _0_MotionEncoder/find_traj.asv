@@ -1,0 +1,32 @@
+function Traj_hit = find_traj(Points_Traj,List_frame_search,List_node_search)
+
+    Traj_hit = [];
+    for ii = 1:numel(List_frame_search)
+        id_frame = List_frame_search(ii);
+        id_node = List_node_search(ii);
+
+        for ii = 1:numel(Points_Traj)
+            ListFrame{ii} = Points_Traj(ii).ListFrame;
+            ListNode{ii} = Points_Traj(ii).node;
+        end
+        FlagFrame = zeros(1,numel(ListFrame));
+        FlagFrame(cellfun(@(x) ~isempty(intersect(x,id_frame)), ListFrame)) = 1;
+        FlagNode = zeros(1,numel(ListFrame));
+        FlagNode(cellfun(@(x) ~isempty(intersect(x,id_node)), ListNode)) = 1;
+        
+        List_Traj_hit = find(FlagFrame.*FlagNode);
+        ListN = cellfun(@numel, ListNode(List_Traj_hit));
+
+        if ~isempty(List_Traj_hit)
+            min(List_Traj_hit(find(ListN == max(ListN))))
+            Traj_hit(ii) = min(List_Traj_hit(find(ListN == max(ListN))));%一番長くて、番号の若いもの
+        else
+            Traj_hit(ii) = 0;
+            fprintf('no hit');
+        end
+
+    end
+
+end
+
+

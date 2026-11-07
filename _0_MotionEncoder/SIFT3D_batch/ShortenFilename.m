@@ -1,0 +1,28 @@
+clear;
+fprintf('variants cleared\n');
+%------------------------------------------------------------
+mfn = mfilename('fullpath');
+[pn_main, fn_main] = fileparts(mfn);
+fn_datalocation = [fn_main,'_datalocation.mat'];
+if exist([pn_main '\' fn_datalocation],'file')
+    load([pn_main '\' fn_datalocation]);
+end
+try
+    pn_crop2 = uigetdir(pn_def,'select movie folder');
+catch
+    pn_crop2 = uigetdir('','select movie folder');
+end
+pn_def = pn_crop2;
+save([pn_main '\' fn_datalocation],'pn_def');
+%------------------------------------------------------------
+pn_movie = uigetdir(pn_def,'select movie folder');
+N_first_letter_copy = input('How many letter for fn to copy from first\n');
+pn_movie_short = [pn_movie '\shortFn'];
+ListAVI = dir(fullfile(pn_movie, '*.avi'));
+mkdir(pn_movie_short);
+mkdir([pn_movie ,'\Info']);
+save([pn_movie_short,'\Info\ListAVI.mat'],'ListAVI');
+
+for ii = 1:numel(ListAVI)
+    copyfile([pn_movie '\' ListAVI(ii).name], [pn_movie_short '\' ListAVI(ii).name(1:N_first_letter_copy) num2str(ii) '.avi']);
+end

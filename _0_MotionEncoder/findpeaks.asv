@@ -1,0 +1,22 @@
+function [Peak_X2, Peak_Y2] = findpeaks(X,Y)
+
+    X2=X;
+    Y2=Y;
+
+    for ii = numel(Y2):-1:2
+        if (Y2(ii) == Y2(ii-1))%ひとつ前と同じだったら
+            Y2(ii) = [];%後ろから削除
+            X2(ii) = [];
+        end
+    end
+
+    d_data = diff(Y2);
+    peaks_id = find(((d_data(1:end-1)>0)&(d_data(2:end)<0)))+1;
+    Peak_X2 = X2(peaks_id);
+    Peak_Y2 = Y2(peaks_id);
+
+    for ii = 1:numel(Peak_X2)
+        Peak_X{ii} = Peak_X2(ii);
+        whilev
+    end
+end
