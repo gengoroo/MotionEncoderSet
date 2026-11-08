@@ -48,7 +48,9 @@ end
 
 if sel_start <=1
 
+        MovieXYresize = [];%default
         tag_RFMap = [];
+        
         yn_flip_T = input('flip ON-OFF sequence in filter? y/n []=n','s');
         if isempty('yn_flip_T')
             yn_flip_T = 'n';
@@ -92,10 +94,16 @@ if sel_start <=1
 
             %fprintf('RFMap size is %s\n',num2str(Size_RFMap));
         else
-            fn_full_RFMap = '';
+            fn_full_RFMap = [pn_main,'\DataBase_Dipole_Rank.mat'];
+            if ~exist(fn_full_RFMap,'file')
+                fprintf('DataBase_Dipole_Rank.mat is not present in the code folder, load manually\n');
+                [fn_RFMap_nat, pn_RFmap_nat] = uigetfile(pn_RFmap_def,'select "DataBase_RFMap_b.mat" ');
+                fn_full_RFMap = [pn_RFmap_nat, fn_RFMap_nat];
+            end
         end
 
         SideEncoder_input = [];
+        Range_frame = [];%default, needed to avoid error %2026_11_08
         if yn_RFMap == 'y'
             % 2024.02.02
             fprintf('Movie size [obtained from 1st avi file] is %s\n',num2str(Size_movie));
@@ -155,11 +163,22 @@ if sel_start <=1
             end
 
         else
+            fprintf('This mode use RFmaps from animals [20x20] pix, default image setting is [200x200] pix, nSection [10, 10], Range_frame 1:24\n');
             nSection = input('Type nSection [ ,  ] to cut movies, as [N x N] Grids of encoders, just enter = [10, 10] grids\n');
             if isempty(nSection)    
                 nSection = [10, 10];%2023.12.18 added
-                SideEncoder_input = Size_movie(1:2)./nSection;
+                %SideEncoder_input = Size_movie(1:2)./nSection;%2026.11.08 deleted
             end
+            MovieXYresize = input('Type MovieXYresize [ ,  ] to resize movies, as [N x N] Grids of encoders, just enter = [200, 200] grids\n');%2026.11.08 added
+            if isempty(MovieXYresize)    
+                MovieXYresize = [200, 200];%2026.11.08 added
+                SideEncoder_input = MovieXYresize(1:2)./nSection;%2026.11.08 added
+            end
+            Range_frame = input('Type Range_frame to specify used frames to make encoders, just enter = 1:24\n');%2026.11.08 added
+            if isempty(Range_frame)    
+                Range_frame = 1:24;%2026.11.08 added
+            end
+
         end
 
         %id_cc_mode = input('1: sum of CC 2: max of CC 3:3Dcc[]=2\n');
@@ -179,8 +198,7 @@ if sel_start <=1
         tag = [tag_RFMap, '_' cc_mode];
         %pn_CC = f_MakeMovieFilterSeq3x3_cube(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'fn_full_RFMap',fn_full_RFMap,'tag',[tag_RFMap, '_' tag_CC],'cc_mode',cc_mode,'nSection',nSection);
         %pn_CC = f_MakeMovieFilterSeq3x3_cube_GPU_parfor(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'fn_full_RFMap',fn_full_RFMap,'tag',[tag_RFMap, '_' tag_CC],'cc_mode',cc_mode,'nSection',nSection,'SideEncoder',SideEncoder_input);
-        [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'fn_full_RFMap',fn_full_RFMap,'tag',tag,'cc_mode',cc_mode,'nSection',nSection,'SideEncoder',SideEncoder_input);
-
+        [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'fn_full_RFMap',fn_full_RFMap,'tag',tag,'cc_mode',cc_mode,'nSection',nSection,'SideEncoder',SideEncoder_input,'MovieXYresize',MovieXYresize,'Range_frame',Range_frame);
 end
 if sel_start <=2
         fn_full_CC_hyper_stack = f_Make_hyper_CC_var3X3_rev2_f1(pn_CC,'yn_skip_fig','y');

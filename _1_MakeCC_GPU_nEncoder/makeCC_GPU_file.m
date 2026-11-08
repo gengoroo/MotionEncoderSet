@@ -20,12 +20,16 @@ function makeCC_GPU_file(fn_movie, pn_movie, pn_CC, InfoEncoder, InfoMovie, vara
         yn_flip_T = 'n';
         cc_mode = 'sum';
         yn_skip_fig = 'y';
+        MovieXYresize = [];
         for ii = 1:nargin - 5
             if strcmp('tag',varargin{ii})
                 tag = varargin{ii+1};
             end
             if strcmp('tag',varargin{ii})
                 yn_flip_T = varargin{ii+1};
+            end
+            if strcmp('MovieXYresize',varargin{ii})%2026_11_08
+                MovieXYresize = varargin{ii+1};%2026_11_08
             end
         end
         %-------------------------------------------------------------------
@@ -58,7 +62,10 @@ function makeCC_GPU_file(fn_movie, pn_movie, pn_CC, InfoEncoder, InfoMovie, vara
             %nSection = XYsize/side_rf;%2023.12.18
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            fprintf('Resizing to %s\n',num2str(XYsize));
+            if ~isempty(MovieXYresize)
+                XYsize = MovieXYresize;
+                fprintf('Resizing to %s\n',num2str(XYsize));
+            end
     
             clear Movie_intact_resize;
             clear Movie_deriv_resize;

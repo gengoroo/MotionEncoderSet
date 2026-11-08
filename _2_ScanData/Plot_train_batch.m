@@ -11,8 +11,8 @@ function Plot_train_batch()
     if exist([pn_main '\' fn_datalocation],'file')
         load([pn_main '\' fn_datalocation]);
     end
-    if pn_def == 0
-        pn_def = '';
+    if exist(pn_def,'dir')==0
+        pn_def = 'C:';
     end
     pn_def = uigetdir(pn_def,'CC_var_hyper_3ChStack or CC_var_rev_hyper_3ChStack folder');
     save([pn_main '\' fn_datalocation],'pn_def');

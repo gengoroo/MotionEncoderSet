@@ -5,7 +5,17 @@ function [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_movie,varar
 
     tag = '';
     SideEncoder = '';
+    MovieXYresize = [];%2026_10_08
     %nSection = [10, 10];% default
+    %---------------------------------
+    %default setting
+    yn_flip_T = 'n';
+    yn_invert_IM = 'n';
+    Range_frame = [];%1:24;%2026_11_08
+    keyword = '600ms';
+    SelRank = {'A','S'};
+    %---------------------------------
+
     for ii = 1:nargin-1
         if strcmp(varargin{ii},'tag')
             tag = ['_' varargin{ii+1}];
@@ -21,17 +31,15 @@ function [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_movie,varar
             SideEncoder = varargin{ii+1};
             tag = [tag '_' num2str(SideEncoder(1)) 'x' num2str(SideEncoder(2)) 'Pix'];
         end
+        if strcmp(varargin{ii},'MovieXYresize')%2026_10_08
+            MovieXYresize = varargin{ii+1};
+            if ~isempty(MovieXYresize)
+                tag = [tag '_movRsz' num2str(MovieXYresize(1)) 'x' num2str(MovieXYresize(2)) 'Pix'];
+            end
+        end
+
     end
    
-    %---------------------------------
-    %default setting
-    yn_flip_T = 'n';
-    yn_invert_IM = 'n';
-    Range_frame = 1:24;
-    keyword = '600ms';
-    SelRank = {'A','S'};
-    %---------------------------------
-
     for ii = 1:nargin - 1
         if strcmp(varargin{ii},'yn_flip_T')
             yn_flip_T = varargin{ii+1};
@@ -50,35 +58,43 @@ function [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_movie,varar
         end
         if strcmp(varargin{ii},'fn_full_RFMap')
             fn_full_RFMap = varargin{ii+1};
-            if ~isempty(fn_full_RFMap)
-                load(fn_full_RFMap);
-                nFrame = size(DataBase{1}.input.RFMap,3);
-                fprintf('nFrame is %d\n',nFrame);
-                yn_autoset_Range_frame = input('Set this frame range y/n []=y','s');
-                if isempty(yn_autoset_Range_frame)
-                    yn_autoset_Range_frame = 'y';
-                end
-                if (yn_autoset_Range_frame == 'y')
-                    Range_frame = 1:nFrame;
-                end
-                if isempty(strfind(DataBase{1}.datasetname, keyword))
-                    yn_clear_keyword = input(['DataBase does not include keyword=' keyword ' change keyword to include it? y/n []=y' ],'s');
-                    if isempty(yn_clear_keyword)
-                        yn_clear_keyword = 'y';
-                    end
-                    if yn_clear_keyword == 'y'
-                        keyword = DataBase{1}.datasetname;
-                    end
-                end
-                if ~isfield(DataBase{1}.input,'RF_black')
-                    fprintf('RF_black field is missing making from RFMap\n');
-                    DataBase{1}.input.RF_black = (abs(DataBase{1}.input.RFMap) - DataBase{1}.input.RFMap)/2;
-                end
-                if ~isfield(DataBase{1}.input,'RF_white')
-                    fprintf('RF_white field is missing making from RFMap\n');
-                    DataBase{1}.input.RF_white = (abs(DataBase{1}.input.RFMap) + DataBase{1}.input.RFMap)/2;
-                end
+  
+        end
+    end
+
+    if ~isempty(fn_full_RFMap)
+        load(fn_full_RFMap,'DataBase');
+        nFrame = size(DataBase{1}.input.RFMap,3);
+        fprintf('nFrame of DataBase{1}.input.RFMap is %d\n',nFrame);
+        if isempty(Range_frame)
+            yn_autoset_Range_frame = input('Range_frame is not defined, then Set nFrame of DataBase{1}.input.RFMap frame as Range_frame y/n []=y','s');
+        else
+            yn_autoset_Range_frame = 'n';%2026_11_08
+        end
+        if isempty(yn_autoset_Range_frame)
+            yn_autoset_Range_frame = 'y';
+        end
+        if yn_autoset_Range_frame == 'y'
+            Range_frame = 1:nFrame;
+        end
+        fprintf('Selected Range_frame(end) is %d\n',Range_frame(end));
+    
+        if isempty(strfind(DataBase{1}.datasetname, keyword))
+            yn_clear_keyword = input(['DataBase does not include keyword=' keyword ' change keyword to include it? y/n []=y' ],'s');
+            if isempty(yn_clear_keyword)
+                yn_clear_keyword = 'y';
             end
+            if yn_clear_keyword == 'y'
+                keyword = DataBase{1}.datasetname;
+            end
+        end
+        if ~isfield(DataBase{1}.input,'RF_black')
+            fprintf('RF_black field is missing making from RFMap\n');
+            DataBase{1}.input.RF_black = (abs(DataBase{1}.input.RFMap) - DataBase{1}.input.RFMap)/2;
+        end
+        if ~isfield(DataBase{1}.input,'RF_white')
+            fprintf('RF_white field is missing making from RFMap\n');
+            DataBase{1}.input.RF_white = (abs(DataBase{1}.input.RFMap) + DataBase{1}.input.RFMap)/2;
         end
     end
 
@@ -257,7 +273,7 @@ function [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_movie,varar
 
     WaitMessage = parfor_wait(numel(List_avi), 'Waitbar', true);
     parfor id_movie = 1:numel(List_avi)
-        makeCC_GPU_file(List_avi(id_movie).name, pn_movie, pn_CC, InfoEncoder, InfoMovie, 'tag',tag);
+        makeCC_GPU_file(List_avi(id_movie).name, pn_movie, pn_CC, InfoEncoder, InfoMovie, 'tag',tag,'MovieXYresize',MovieXYresize);% MovieXYresize 2026_10_08
         WaitMessage.Send;
     end
     WaitMessage.Destroy
