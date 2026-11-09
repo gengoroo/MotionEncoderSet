@@ -64,7 +64,11 @@ if sel_start <=1
             if ~exist('pn_RFmap_def','var')
                 pn_RFmap_def = pn_def;
             end
-            [fn_RFMap_SOM, pn_RFmap_SOM] = uigetfile(pn_RFmap_def,'select "DataBase_RFMap_b.mat" ');
+            try
+                [fn_RFMap_SOM, pn_RFmap_SOM] = uigetfile(pn_RFmap_def,'select "DataBase_RFMap_b.mat" ');
+            catch
+                [fn_RFMap_SOM, pn_RFmap_SOM] = uigetfile('','select "DataBase_RFMap_b.mat" ');
+            end
             fn_full_RFMap = [pn_RFmap_SOM, fn_RFMap_SOM];
             pn_RFmap_def = pn_RFmap_SOM;
             save([pn_main '\' fn_datalocation],'pn_def','pn_RFmap_def');
@@ -163,17 +167,23 @@ if sel_start <=1
             end
 
         else
-            fprintf('This mode use RFmaps from animals [20x20] pix, default image setting is [200x200] pix, nSection [10, 10], Range_frame 1:24\n');
-            nSection = input('Type nSection [ ,  ] to cut movies, as [N x N] Grids of encoders, just enter = [10, 10] grids\n');
-            if isempty(nSection)    
-                nSection = [10, 10];%2023.12.18 added
-                %SideEncoder_input = Size_movie(1:2)./nSection;%2026.11.08 deleted
-            end
-            MovieXYresize = input('Type MovieXYresize [ ,  ] to resize movies, as [N x N] Grids of encoders, just enter = [200, 200] grids\n');%2026.11.08 added
+            SideEncoder = 20;
+            fprintf('This mode use RFmaps from animals [%d, %d] pix, Range_frame 1:24\n',SideEncoder,SideEncoder);
+            
+            MovieXYresize = input('Type MovieXYresize [ ,  ] to resize movies (adjust obj size to encoder size), just enter = [200, 200] \n');%2026.11.08 added
             if isempty(MovieXYresize)    
                 MovieXYresize = [200, 200];%2026.11.08 added
-                SideEncoder_input = MovieXYresize(1:2)./nSection;%2026.11.08 added
             end
+
+            nSection = [MovieXYresize(1)/SideEncoder, MovieXYresize(2)/SideEncoder];%2026.11.08
+            fprintf('Then, nSection is [%d, %d]\n',nSection(1), nSection(2));
+            %nSection = input('Type nSection [ ,  ] to cut movies, as [N x N] Grids of encoders, just enter = [10, 10] grids\n');
+            %if isempty(nSection)    
+                %nSection = [10, 10];%2023.12.18 added
+                %SideEncoder_input = Size_movie(1:2)./nSection;%2026.11.08 deleted
+            %end
+            %SideEncoder_input = MovieXYresize(1:2)./nSection;%2026.11.08added_Then deleted
+
             Range_frame = input('Type Range_frame to specify used frames to make encoders, just enter = 1:24\n');%2026.11.08 added
             if isempty(Range_frame)    
                 Range_frame = 1:24;%2026.11.08 added
@@ -198,7 +208,9 @@ if sel_start <=1
         tag = [tag_RFMap, '_' cc_mode];
         %pn_CC = f_MakeMovieFilterSeq3x3_cube(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'fn_full_RFMap',fn_full_RFMap,'tag',[tag_RFMap, '_' tag_CC],'cc_mode',cc_mode,'nSection',nSection);
         %pn_CC = f_MakeMovieFilterSeq3x3_cube_GPU_parfor(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'fn_full_RFMap',fn_full_RFMap,'tag',[tag_RFMap, '_' tag_CC],'cc_mode',cc_mode,'nSection',nSection,'SideEncoder',SideEncoder_input);
-        [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'fn_full_RFMap',fn_full_RFMap,'tag',tag,'cc_mode',cc_mode,'nSection',nSection,'SideEncoder',SideEncoder_input,'MovieXYresize',MovieXYresize,'Range_frame',Range_frame);
+        %[pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'fn_full_RFMap',fn_full_RFMap,'tag',tag,'cc_mode',cc_mode,'nSection',nSection,'SideEncoder',SideEncoder_input,'MovieXYresize',MovieXYresize,'Range_frame',Range_frame);
+        [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'fn_full_RFMap',fn_full_RFMap,'tag',tag,'cc_mode',cc_mode,'nSection',nSection,'MovieXYresize',MovieXYresize,'Range_frame',Range_frame);
+
 end
 if sel_start <=2
         fn_full_CC_hyper_stack = f_Make_hyper_CC_var3X3_rev2_f1(pn_CC,'yn_skip_fig','y');

@@ -124,6 +124,7 @@ function [ListScore, ListL, Val, Tr, NetStack, ListEndN] = accu_eachdata(pn_pare
     IM_score_val(ListEndN,N_rand+1) = 1;
 
     if yn_figure == 'y'
+        try
         figure('Name','P_chart');
         subplot(1,2,1);hold on;title('Val');
         imagesc(IM_score_val);
@@ -161,6 +162,9 @@ function [ListScore, ListL, Val, Tr, NetStack, ListEndN] = accu_eachdata(pn_pare
         subplot(1,5,5);hold on;title(string(ListLabels(4)));
         plot(Val.Accuracy_each(4,:),'.');
         plot(Tr.Accuracy_each(4,:),'.');a=gca;a.YLim(1) = 0;
+        catch
+            fprintf('Error in drawing figure for subdata\n');
+        end
     end
 
 end

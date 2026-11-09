@@ -47,8 +47,11 @@ function [Idx_sel, max_side, max_frame, Range]= f_define_filter_size(MOV_onoff,v
         List_dist_poles(id_pair) = sqrt((x1-x2)^2 + (y1-y2)^2);
     end
     side_mode = mode(List_side);
+    side_prc = prctile(List_side,[25 50 70]);
     dur_mode = mode(List_dur);
+    dur_prc = prctile(List_dur,[25 50 70]);
     pole_mode = mode(List_dist_poles(List_dist_poles~=0));
+    pole_prc = prctile(List_dist_poles(List_dist_poles~=0),[25 50 70]);
 
     % Histogram
     figure('Name','SideSize,nFrames,PoleDist');
@@ -57,7 +60,9 @@ function [Idx_sel, max_side, max_frame, Range]= f_define_filter_size(MOV_onoff,v
     subplot(3,2,1);hold on;
     histogram(List_side);
     plot(side_mode,0,'*');
+    plot(side_prc,[0, 0, 0],'+');
     text(side_mode,0,['mode=' num2str(side_mode)]);
+    text(side_prc,[0, 0, 0],cellstr(string(side_prc)));
     xlabel('Pixels');
     ylabel('Count');
     title('SideSize');
@@ -66,7 +71,9 @@ function [Idx_sel, max_side, max_frame, Range]= f_define_filter_size(MOV_onoff,v
     subplot(3,2,2);hold on;
     cdfplot(List_side);
     plot(side_mode,0,'*');
+    plot(side_prc,[0, 0, 0],'+');
     text(side_mode,0,['mode=' num2str(side_mode)]);
+    text(side_prc,[0, 0, 0],cellstr(string(side_prc)));
     xlabel('Pixels');
     ylabel('Cumulative N');
     yt = yticks;                    % 現在のtick値取得
@@ -79,7 +86,9 @@ function [Idx_sel, max_side, max_frame, Range]= f_define_filter_size(MOV_onoff,v
     subplot(3,2,3);hold on;
     histogram(List_dur);
     plot(dur_mode,0,'*');
+    plot(dur_prc,[0, 0, 0],'+');
     text(dur_mode,0,['mode=' num2str(dur_mode)]);
+    text(dur_prc,[0, 0, 0],cellstr(string(dur_prc)));
     xlabel('Frames');
     ylabel('Count');
     title('nFrames');
@@ -88,7 +97,9 @@ function [Idx_sel, max_side, max_frame, Range]= f_define_filter_size(MOV_onoff,v
     subplot(3,2,4);hold on;
     cdfplot(List_dur);
     plot(dur_mode,0,'*');
+    plot(dur_prc,[0, 0, 0],'+');
     text(dur_mode,0,['mode=' num2str(dur_mode)]);
+    text(dur_prc,[0, 0, 0],cellstr(string(dur_prc)));
     xlabel('Frames');
     ylabel('Cumulative Probability');
     yt = yticks;                    % 現在のtick値取得
@@ -101,7 +112,9 @@ function [Idx_sel, max_side, max_frame, Range]= f_define_filter_size(MOV_onoff,v
     subplot(3,2,5);hold on;
     histogram(List_dist_poles);
     plot(pole_mode,0,'*');
+    plot(pole_prc,[0, 0, 0],'+');
     text(pole_mode,0,['mode=' num2str(pole_mode)]);
+    text(pole_prc,[0, 0, 0],cellstr(string(pole_prc)));
     xlabel('Pixels');
     ylabel('Count');
     title('PoleDist');
@@ -110,15 +123,15 @@ function [Idx_sel, max_side, max_frame, Range]= f_define_filter_size(MOV_onoff,v
     subplot(3,2,6);hold on;
     cdfplot(List_dist_poles);
     plot(pole_mode,0,'*');
+    plot(pole_prc,[0, 0, 0],'+');
     text(pole_mode,0,['mode=' num2str(pole_mode)]);
+    text(pole_prc,[0, 0, 0],cellstr(string(pole_prc)));
     xlabel('Pixels');
     ylabel('Cumulative Probability');
     yt = yticks;                    % 現在のtick値取得
     yticklabels(string(round(yt*numel(List_side))));
     title('CDF');
     grid on;
-
-    
 
     Side_range = input('Determine [min max] Filter size (1st dim) of encoder []:all range \n');
     Frame_range = input('Determine [min max] Frame number (3rd dim) of encoder []:all range \n');

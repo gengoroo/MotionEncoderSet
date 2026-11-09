@@ -11,10 +11,11 @@ function Plot_train_batch()
     if exist([pn_main '\' fn_datalocation],'file')
         load([pn_main '\' fn_datalocation]);
     end
-    if exist(pn_def,'dir')==0
-        pn_def = 'C:';
+    try
+        pn_def = uigetdir(pn_def,'CC_var_hyper_3ChStack or CC_var_rev_hyper_3ChStack folder');
+    catch
+        pn_def = uigetdir('','CC_var_hyper_3ChStack or CC_var_rev_hyper_3ChStack folder');
     end
-    pn_def = uigetdir(pn_def,'CC_var_hyper_3ChStack or CC_var_rev_hyper_3ChStack folder');
     save([pn_main '\' fn_datalocation],'pn_def');
     %------------------------------------------------------------
     fprintf('Select all "SliceOf1Ch*" folders\n');
@@ -120,8 +121,6 @@ function Plot_train(varargin)
     
     List_pick_ratio = 0.1:0.01:1;
     parfor id_pick_ratio = 1:numel(List_pick_ratio)
-
-
         [ListScore, ListL, Val, Tr, NetStack, ListEndN] = ...
             accu_eachdata(pn,'exc',exc,'pick_ratio',List_pick_ratio(id_pick_ratio),'rand_use',rand_use,'stride',stride,'filtersize',filtersize,...
             'List_rand',List_rand,'learn_rate',learn_rate,'nFilter',nFilter);

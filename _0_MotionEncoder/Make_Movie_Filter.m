@@ -488,23 +488,26 @@ switch sel_SOM
 end
 
 %エンコーダ手動選別　2026_11_01
+h_temp = figure;
+h_start = gcf;
 for id_wb = 1:numel(List_selectWB)
     fprintf('Configuration for %s center encoder\n',List_selectWB{id_wb});
     selectWB = List_selectWB{id_wb};
     [List_sel.(selectWB), Max_side_temp, Max_frame_temp, Range_encoder.(selectWB), List_side, List_dur]= define_filter_size(MOV_onoff_stack.(selectWB));
-    mode_side = mode(List_side);
 
-    Max_side.(selectWB) = input(['Type Encoder side crop size, just enter: mode(List_side)=' num2str(mode_side) '\n']);
+    default_side = uint8(round(1.3*mode(List_side)));
+    Max_side.(selectWB) = input(['Type Encoder side crop size, just enter: 1.3*mode(List_side)=' num2str(default_side) '\n']);
     if isempty(Max_side.(selectWB))
-        Max_side.(selectWB) = mode_side;
+        Max_side.(selectWB) = default_side;
     end
 
-    mode_frame = mode(List_dur);
-    Max_frame.(selectWB) = input(['Type Encoder Frame crop size, just enter: mode(List_dur)=' num2str(mode_frame) '\n']);
+    default_frame = uint8(round(mode(List_dur)));
+    Max_frame.(selectWB) = input(['Type Encoder Frame crop size, just enter: mode(List_dur)=' num2str(default_frame) '\n']);
     if isempty(Max_frame.(selectWB))
-        Max_frame.(selectWB) = mode_frame;
+        Max_frame.(selectWB) = default_frame;
     end
     List_FilterSize.(selectWB) = [Max_side.(selectWB), Max_side.(selectWB), Max_frame.(selectWB)];%Size = max range
+    h=gcf;h.Name = [h.Name, selectWB, '-Cen Wdist'];
 end
 
 ResizeSide = input('Resize RFs?, if yes type pixel number of a suqre side, if not just enter\n');
@@ -514,8 +517,6 @@ if isempty(yn_plot_som_plane)
 end
 integmode = 'distance';
 
-h_temp = figure;
-h_start = gcf;
 for id_wb = 1:numel(List_selectWB)
     selectWB = List_selectWB{id_wb};
 
@@ -545,8 +546,10 @@ for id_wb = 1:numel(List_selectWB)
             netSOM = Model.SOM;
             [NodeMovie, ListNonNaN] = make_NodeMovie(MOV_adjust,Model,'integmode',integmode);%integmode: weight=synaptic weight, distance=node distance
             MOV_som = cat(4, NodeMovie{:});
+            Embedding = Model.Embedding';
         case 2
             [MOV_som, rep_vec, netSOM, ListFig, SideEncoder]= som_movie_filter(MOV_adjust,'yn_normW',yn_normW,'yn_plot',yn_plot);%自己組織化して、入力と結果表示 2024.02.03 SideEncoder
+            Embedding = reshape(MOV_adjust,[],size(MOV_adjust,4))';
     end
     DataBase_SOM.(selectWB).MOV_som{id_data_som} = MOV_som;
     DataBase_SOM.(selectWB).net{id_data_som} = netSOM;
@@ -558,8 +561,8 @@ for id_wb = 1:numel(List_selectWB)
     end
 
     figure;plotsomnd(netSOM);h=gcf;h.Name = [h.Name, selectWB, '-Cen Wdist'];
-    figure;plotsomhits(netSOM,Model.Embedding');h=gcf;h.Name = [h.Name, selectWB, '-Cen hits'];
-    figure;plotsompos(netSOM, Model.Embedding');h=gcf;h.Name = [h.Name, selectWB, '-Cen Wpos'];
+    figure;plotsomhits(netSOM,Embedding);h=gcf;h.Name = [h.Name, selectWB, '-Cen hits'];
+    figure;plotsompos(netSOM,Embedding);h=gcf;h.Name = [h.Name, selectWB, '-Cen Wpos'];
     if yn_plot_som_plane == 'y'
         figure('Name',[selectWB, '-Cen planes']);plotsomplanes(netSOM);
     end

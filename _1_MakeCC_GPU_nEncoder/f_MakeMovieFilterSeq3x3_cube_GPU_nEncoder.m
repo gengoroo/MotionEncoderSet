@@ -255,7 +255,8 @@ function [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_movie,varar
     InfoMovie.ListShift_norm = ListShift_norm;
     InfoEncoder.MF = MF;
     InfoEncoder.nSection = nSection;
-    InfoEncoder.SideEncoder = SideEncoder;
+    %InfoEncoder.SideEncoder = SideEncoder;%2026_11_08 simplify
+    InfoEncoder.SideEncoder = [size(MF.RFMap,1), size(MF.RFMap,2)];%2026_11_08 simplify
 
     List_avi = dir(fullfile(pn_movie,'*.avi'));
 
