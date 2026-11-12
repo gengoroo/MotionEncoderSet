@@ -199,7 +199,7 @@ function [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_movie,varar
     % fine OFF peak
     ListSumOFf = reshape(sum(sum(MF.RF_black,2),1),size(MF.RF_black,3),size(MF.RF_black,4));
     ListOFFPeak = max(ListSumOFf,[],1);
-    % fine OFF peak
+    % find OFF peak
     ListSumON = reshape(sum(sum(MF.RF_white,2),1),size(MF.RF_white,3),size(MF.RF_white,4));
     ListONPeak = max(ListSumON,[],1);
     
