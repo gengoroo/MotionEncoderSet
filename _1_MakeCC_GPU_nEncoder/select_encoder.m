@@ -78,7 +78,9 @@ function [MF, addtag] = select_encoder(MF,varargin)
                     ListUsedEncoderID = ListEncoderRandom(1:nEncoder);
             end
             ListUsedEncoderID = unique(sort(ListUsedEncoderID,'ascend'));%2026_11_04 類似するもの近く
-            fprintf('Selected Encoders are %s\n',num2str(ListUsedEncoderID));
+            fprintf('Selected Encoders are ');
+            fprintf('%d,',ListUsedEncoderID);
+            fprintf('\n');
 
             if nEncoder == 0
                 ListUsedEncoderID = 0;

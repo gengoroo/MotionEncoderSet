@@ -29,8 +29,15 @@ n_words = input([cc_words_temp ':How many words to specify cc folder\n']);
 cc_words = cc_words_temp(1:n_words);
 fprintf('%s specified as cc folder search word\n',cc_words);
 end
-visible = input('Type "on" or "off" for figure\n','s');
-yn_process_attribute = input('Make max attribution map y/n, just enter=answer later','s');
+visible = input('Type "on" or "off" to select figure display mode, just enter = on\n','s');
+if isempty(visible)
+    visible = 'on';
+end
+%yn_process_attribute = input('Make max attribution map y/n, [just enter = answer later]','s');
+yn_process_attribute = input('Make max attribution map y/n, just enter = y','s');
+if isempty(yn_process_attribute)
+    yn_process_attribute = 'y';
+end
 %-------------------------------------------------------------------------
 % AttriMap作成
 ListSliceOf = dir(fullfile(datapath,'SliceOf1*'));
@@ -101,7 +108,7 @@ ListShift_lefttop = round((ListShift_norm + 1/2).* nPixPerGrid.*[nSideNeuron, nS
 ListShift_rightbottom = SizeMovie + round(([-3/2, -3/2] + ListShift_norm).* nPixPerGrid.*[nSideNeuron, nSideNeuron]); %2023.11.22修正
 %-------------------------------------------------------------------------
 
-[BestCh, P, P_allCh, Accu, AccuClass] = get_P_rightclass(datapath);%どのセッションはどのnetを読むべきか。max peak => そのlabelに強いもの=>全体に強いもの
+[BestCh, P, P_allCh, Accu, AccuClass, Response] = get_P_rightclass(datapath);%どのセッションはどのnetを読むべきか。max peak => そのlabelに強いもの=>全体に強いもの
 
 %-------------------------------------------------------------------------
 % Attribution map作成
@@ -109,9 +116,19 @@ pn_movie = uigetdir('','select avi movie folder\n');
 ListMovie = dir(fullfile(pn_movie, '*.avi'));
 
 fprintf('Minimal GradCAM data is saved in "_SliceOfAllCh\Results.mat", see Results(mov_id).guided_GradCAM_bestCh\n');
-yn_make_figures = input('make&display& save figures in each category folder? [takes time] y/n\n','s');
+yn_make_figures = input('\nMake& save figures in each category folder? [takes time] y/n, just enter = y\n','s');
+if isempty(yn_make_figures)
+    yn_make_figures = 'y';
+end
+if yn_make_figures == 'y'
+    yn_save_original_fig = input('Save original fig files or tif only? y/n, just enter = n','s');
+    if isempty(yn_save_original_fig)
+        yn_save_original_fig = 'n';
+    end
+end
 
 %fn_movie_cuttag = '_25-';
+clear AttriMap;
 clear AttriMapStack;
 clear Results;
 if yn_process_attribute == 'y'
@@ -121,7 +138,20 @@ if yn_process_attribute == 'y'
     end
 
     ListGradCh1 = dir(fullfile(datapath, 'SliceOf1Ch1','*','GradCAM','*mat'));% scan GradCAM files in the first "SliceOf1Ch1" folder
+
+    fig = figure('Name', 'Press Space to Pause / Resume', 'NumberTitle', 'off', 'Position', [1, 950, 300, 80]);
+    isPaused = false;%中断用2026.11.13
+    set(fig, 'KeyPressFcn', @(src, event) assignin('base', 'isPaused', ~evalin('base', 'isPaused')));%中断用2026.11.13
+
     for id_grad = 1:numel(ListGradCh1)
+        while isPaused && ishandle(fig)
+            title('[PAUSED] Press any key to resume');
+            pause(0.1);
+        end
+        if ishandle(fig)
+            title('[RUNNING] Press any key to pause');
+        end
+
         fprintf('.');
         if rem(id_grad,100) == 0
             fprintf('\n');
@@ -133,7 +163,32 @@ if yn_process_attribute == 'y'
 
         %該当する動画を検索。(ファイル名が包含される動画ファイルを検索）
         idx = find(arrayfun(@(x) contains(fn_gradCAM, erase(x.name,'.avi')), ListMovie));
-        ListMovie_found = ListMovie(idx);%１つしかないはず。
+
+        fprintf('Search for *.avi file matching %s\n',fn_gradCAM);
+        if numel(idx)==1%2026.11.13
+            ListMovie_found = ListMovie(idx);%
+        else
+            fprintf('\nMultiple *.avi files found, narrowing down\n');
+            for ii = numel(idx):-1:1
+                % grab character in fn_gradCAM after matching words
+                id_char_check = strfind(fn_gradCAM,ListMovie(idx(ii)).name(1:end-4)) + numel(ListMovie(idx(ii)).name)-4;
+                if ~strcmp(fn_gradCAM(id_char_check),'_')
+                    idx(ii) = [];
+                end
+            end
+            if numel(idx)==1 
+                ListMovie_found = ListMovie(idx);%
+            else
+                fprintf('\nSelect *.avi file for %s\n',fn_gradCAM);
+                for ii = 1:numel(idx)
+                    fprintf('%d:%s\n',ii,ListMovie(idx(ii)).name);
+                end
+                kk = input('Select correct number\n');
+                ListMovie_found = ListMovie(idx(kk));%
+            end
+        end
+        fprintf('%s selected\n',ListMovie_found.name);
+
         fn_avi = [ListMovie_found.folder, '\' ListMovie_found.name];
         Results(id_grad).fn_avi = fn_avi;% Output
 
@@ -179,7 +234,7 @@ if yn_process_attribute == 'y'
         % Attribution map作成
         ListMem = dir(fullfile(datapath, 'SliceOf1Ch*',label,'GradCAM',fn_gradCAM));%scan GradCAM files in ALL "SliceOf1Ch*" folders,１つの動画カットに対して9Ch分ある
         for id_Ch = 1:numel(ListMem)
-            load([ListMem(id_Ch).folder, '\' ListMem(id_Ch).name]);
+            load([ListMem(id_Ch).folder, '\' ListMem(id_Ch).name],'AttriMap');%ここでAttriMapロードされる
 
             AttriMapStack.im(1:SizeMovie(1),1:SizeMovie(2),id_Ch) = 0;%2023.11.22追加
             AttriMapStack.mapGB(1:SizeMovie(1),1:SizeMovie(2),id_Ch) = 0;%2023.11.22追加
@@ -203,22 +258,32 @@ if yn_process_attribute == 'y'
         %------------------------------------------------------------------
         % Track projにAttribution mapを重ねる
         AttriMapStack.trackproj_mapGB = repmat(rescale(AttriMapStack.trackproj)/2,1,1,3);
-        im = rescale(max(AttriMapStack.mapGB,[],3))/2;
+        %im = rescale(max(AttriMapStack.mapGB,[],3))/2;
+        im = rescale(AttriMapStack.mapGB(:,:,BestCh(id_grad)))/2;
         AttriMapStack.trackproj_mapGB(1:size(im,1),1:size(im,2),2) = AttriMapStack.trackproj_mapGB(1:size(im,1),1:size(im,2),2) + im;
         
         AttriMapStack.trackproj_scoreMap = repmat(rescale(AttriMapStack.trackproj)/2,1,1,3);
-        im = rescale(max(AttriMapStack.scoreMap,[],3))/2;
+        %im = rescale(max(AttriMapStack.scoreMap,[],3))/2;
+        im = rescale(AttriMapStack.scoreMap(:,:,BestCh(id_grad)))/2;
         AttriMapStack.trackproj_scoreMap(1:size(im,1),1:size(im,2),2) = AttriMapStack.trackproj_scoreMap(1:size(im,1),1:size(im,2),2) + im;
 
         AttriMapStack.trackproj_guided_GradCAM = repmat(rescale(AttriMapStack.trackproj)/2,1,1,3);
-        im = rescale(max(AttriMapStack.map_guided_GradCAM,[],3))/2;
+        %im = rescale(max(AttriMapStack.map_guided_GradCAM,[],3))/2;
+        im = rescale(AttriMapStack.map_guided_GradCAM(:,:,BestCh(id_grad)))/2;
         AttriMapStack.trackproj_guided_GradCAM(1:size(im,1),1:size(im,2),2) = AttriMapStack.trackproj_guided_GradCAM(1:size(im,1),1:size(im,2),2) + im;
 
-        Results(id_grad).guided_GradCAM_bestCh = AttriMapStack.map_guided_GradCAM(:,:,BestCh(id_grad));
-        Results(id_grad).guided_GradCAM_AllCh = AttriMapStack.map_guided_GradCAM;
+        Results(id_grad).guided_GradCAM_bestCh = single(AttriMapStack.map_guided_GradCAM(:,:,BestCh(id_grad)));
+        %Results(id_grad).guided_GradCAM_AllCh = single(AttriMapStack.map_guided_GradCAM);
+        Results(id_grad).scoreMap_bestCh = single(AttriMapStack.scoreMap(:,:,BestCh(id_grad)));
+        %Results(id_grad).scoreMap_AllCh = single(AttriMapStack.scoreMap);
+        Results(id_grad).GuidedBackProp_bestCh = single(AttriMapStack.mapGB(:,:,BestCh(id_grad)));
+        %Results(id_grad).GuidedBackProp_AllCh = single(AttriMapStack.mapGB);
         Results(id_grad).BestCh = BestCh(id_grad);
-        Results(id_grad).projectedMOV = AttriMapStack.proj;
-        Results(id_grad).motionMOV = AttriMapStack.dproj;
+        Results(id_grad).P = P(id_grad);
+        Results(id_grad).P_allCh = P_allCh(id_grad,:);
+        Results(id_grad).Response = Response(id_grad);
+        Results(id_grad).projectedMOV = single(AttriMapStack.proj);
+        Results(id_grad).projectedMOVdiff = single(AttriMapStack.dproj);
         %------------------------------------------------------------------
         pn_save_class = [pn_save_top, '\GradCAM\' label];
         if ~exist(pn_save_class,'dir')
@@ -228,38 +293,46 @@ if yn_process_attribute == 'y'
         if yn_make_figures == 'y'
 
             videoproj = AttriMapStack.trackproj;
-            close all;
+            try
+                close(h);
+            catch
+            end
             h=figure('Name',['Attribution Map max ' label],'Color','w','Visible',visible);
+            h.Position = [1,1,750,850];
+
             subplot(5,4,1);imagesc(mean(AttriMapStack.im,3)); axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)];title('mean(EncoderOutputs)');colorbar;
 	        subplot(5,4,2);imagesc(mean(AttriMapStack.scoreMap,3)); axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)];title('gradCAM mean');colorbar;
 	        subplot(5,4,3);imagesc(mean(AttriMapStack.mapGB,3)); axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)];title('GuidedBackprop mean');colorbar;
 	        subplot(5,4,4);imagesc(mean(AttriMapStack.map_guided_GradCAM,3));axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title('Guided Grad-CAM mean');colorbar;
     
-            subplot(5,4,5);imagesc(AttriMapStack.im(:,:,BestCh(id_grad))); axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)];title('Output from Encoder(best p-values)');colorbar;
-	        subplot(5,4,6);imagesc(AttriMapStack.scoreMap(:,:,BestCh(id_grad))); axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)];title('gradCAM best');colorbar;
-	        subplot(5,4,7);imagesc(AttriMapStack.mapGB(:,:,BestCh(id_grad))); axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)];title('GuidedBackprop best');colorbar;
-	        subplot(5,4,8);imagesc(AttriMapStack.map_guided_GradCAM(:,:,BestCh(id_grad)));axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title('Guided Grad-CAM best');colorbar;
+            subplot(5,4,5);imagesc(AttriMapStack.im(:,:,BestCh(id_grad))); axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)];
+            title({'EncoderOut best(P)' strcat("Ch=", num2str(BestCh(id_grad)),"P=", sprintf('%.2f', P(id_grad))), strcat('response:',string(Response(id_grad)))});colorbar;
+	        subplot(5,4,6);imagesc(AttriMapStack.scoreMap(:,:,BestCh(id_grad))); axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)];title({'gradCAM', 'bestCh'});colorbar;
+	        subplot(5,4,7);imagesc(AttriMapStack.mapGB(:,:,BestCh(id_grad))); axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)];title({'GuidedBackprop', 'bestCh'});colorbar;
+	        subplot(5,4,8);imagesc(AttriMapStack.map_guided_GradCAM(:,:,BestCh(id_grad)));axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title({'Guided Grad-CAM', 'bestCh'});colorbar;
     
 	        subplot(5,4,9);imagesc(max(AttriMapStack.im,[],3)); axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)];title('max(EncoderOutputs)');colorbar;
 	        subplot(5,4,10);imagesc(max(AttriMapStack.scoreMap,[],3)); axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)];title('gradCAM max');colorbar;
 	        subplot(5,4,11);imagesc(max(AttriMapStack.mapGB,[],3)); axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)];title('GuidedBackprop max');colorbar;
 	        subplot(5,4,12);imagesc(max(AttriMapStack.map_guided_GradCAM,[],3));axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title('Guided grad-CAM max');colorbar;
             
-            subplot(5,4,13);imshow(AttriMapStack.trackproj);axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title('track Projection');
+            subplot(5,4,13);imagesc(AttriMapStack.trackproj);axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title('track Projection');
             %%subplot(5,4,14);imshow(flipud(AttriMapStack.dproj));axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title('d Projection');
             %subplot(5,4,14);imshow((AttriMapStack.dproj));axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title('d Projection');
             subplot(5,4,15);imshow(AttriMapStack.proj);axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title('Projection');
     
-            subplot(5,4,17);imshow(AttriMapStack.trackproj_scoreMap);axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title('trackProjection on ScoreMap');
-            subplot(5,4,18);imshow(AttriMapStack.trackproj_mapGB);axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title('trackProjection on BackProp map[mapGB]');
-            subplot(5,4,19);imshow(AttriMapStack.trackproj_guided_GradCAM);axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title('trackProjection on guidedGradCAM map');
+            subplot(5,4,17);imshow(AttriMapStack.trackproj_scoreMap);axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title({'trackProjection', 'ScoreMap bestCh'});
+            subplot(5,4,18);imshow(AttriMapStack.trackproj_mapGB);axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title({'trackProjection', 'BackProp bestCh'});
+            subplot(5,4,19);imshow(AttriMapStack.trackproj_guided_GradCAM);axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title({'trackProjection', 'guidedGradCAM bestCh'});
             
             %subplot(4,3,5);imagesc(sum(AttriMapStack.vidproj,3));axis equal;a=gca;a.XLim=[0 size(videoproj,2)]; a=gca;a.YLim=[0 size(videoproj,1)]; title('Video Projection');colorbar;
     
             try
-                save ([pn_save_class '\' ListGradCh1(id_grad).name], 'AttriMapStack');
+                %save ([pn_save_class '\' ListGradCh1(id_grad).name], 'AttriMapStack');
                 saveas(h,[pn_save_class,'\' ListGradCh1(id_grad).name(1:end-4),'_maxproj_' , '.tif'],'tif');
-                saveas(h,[pn_save_class,'\' ListGradCh1(id_grad).name(1:end-4),'_maxproj_' , '.fig'],'fig');
+                if yn_save_original_fig == 'y'
+                    saveas(h,[pn_save_class,'\' ListGradCh1(id_grad).name(1:end-4),'_maxproj_' , '.fig'],'fig');
+                end
             catch
                 fprintf('Error in saving %s\n',[pn_save_class,'\' ListGradCh1(id_grad).name(1:end-4),'_maxproj_']);
             end
@@ -267,6 +340,6 @@ if yn_process_attribute == 'y'
         end
     end
 
-    save([pn_save_top, '\Results.mat'], 'Results','BestCh');
+    save([pn_save_top, '\Results.mat'], 'Results','BestCh','P', 'P_allCh', 'Accu', 'AccuClass','Response','-v7.3');
 end
 %-------------------------------------------------------------------------

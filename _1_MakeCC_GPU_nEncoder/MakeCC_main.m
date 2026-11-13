@@ -59,6 +59,12 @@ if sel_start <=1
         if isempty('yn_invert_IM')
             yn_invert_IM = 'n';
         end
+        fprintf('Embedding by SOM can make OFF-ON Encoders from ON-OFF RFs\n')
+        yn_align_T = input('invert [*-1] image pixel intensity of such opposie Encoders? y/n []=n','s');
+        if isempty('yn_align_T')
+            yn_align_T = 'n';
+        end
+
         yn_RFMap = input('Select RFMap y/n  y: load a RFMap file generated from movies n: use RFMap from animals, just enter =n \n','s');
         if yn_RFMap == 'y'
             if ~exist('pn_RFmap_def','var')
@@ -209,7 +215,7 @@ if sel_start <=1
         %pn_CC = f_MakeMovieFilterSeq3x3_cube(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'fn_full_RFMap',fn_full_RFMap,'tag',[tag_RFMap, '_' tag_CC],'cc_mode',cc_mode,'nSection',nSection);
         %pn_CC = f_MakeMovieFilterSeq3x3_cube_GPU_parfor(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'fn_full_RFMap',fn_full_RFMap,'tag',[tag_RFMap, '_' tag_CC],'cc_mode',cc_mode,'nSection',nSection,'SideEncoder',SideEncoder_input);
         %[pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'fn_full_RFMap',fn_full_RFMap,'tag',tag,'cc_mode',cc_mode,'nSection',nSection,'SideEncoder',SideEncoder_input,'MovieXYresize',MovieXYresize,'Range_frame',Range_frame);
-        [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'fn_full_RFMap',fn_full_RFMap,'tag',tag,'cc_mode',cc_mode,'nSection',nSection,'MovieXYresize',MovieXYresize,'Range_frame',Range_frame);
+        [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_crop2,'yn_flip_T',yn_flip_T,'yn_invert_IM',yn_invert_IM,'yn_align_T',yn_align_T,'fn_full_RFMap',fn_full_RFMap,'tag',tag,'cc_mode',cc_mode,'nSection',nSection,'MovieXYresize',MovieXYresize,'Range_frame',Range_frame);
 
 end
 if sel_start <=2

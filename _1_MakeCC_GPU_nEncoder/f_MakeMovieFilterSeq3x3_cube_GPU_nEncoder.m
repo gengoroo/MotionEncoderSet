@@ -11,6 +11,7 @@ function [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_movie,varar
     %default setting
     yn_flip_T = 'n';
     yn_invert_IM = 'n';
+    yn_align_T = 'n';%%2026.11.13
     Range_frame = [];%1:24;%2026_11_08
     keyword = '600ms';
     SelRank = {'A','S'};
@@ -47,6 +48,9 @@ function [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_movie,varar
         if strcmp(varargin{ii},'yn_invertIM')
             yn_invert_IM = varargin{ii+1};
         end
+        if strcmp(varargin{ii},'yn_align_T')%2026.11.13
+            yn_align_T = varargin{ii+1};
+        end
         if strcmp(varargin{ii},'Range_frame')
             Range_frame = varargin{ii+1};
         end
@@ -58,7 +62,6 @@ function [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_movie,varar
         end
         if strcmp(varargin{ii},'fn_full_RFMap')
             fn_full_RFMap = varargin{ii+1};
-  
         end
     end
 
@@ -125,6 +128,10 @@ function [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_movie,varar
         tag = [tag, '_invert'];
         fprintf('_invert_IM\n');
     end
+    if yn_align_T == 'y'
+        tag = [tag, '_align_T'];
+        fprintf('_align_T\n');
+    end
     
     %offset_mode = input('e:Time Offset adjusted each grids c:common for all grids []=e \n','s');
     offset_mode = 'e';
@@ -190,7 +197,23 @@ function [pn_CC, tag] = f_MakeMovieFilterSeq3x3_cube_GPU_nEncoder(pn_movie,varar
             end  
         end
     end
+    SideEncoder = size(MF.RFMap,1);
+    tag = [tag, num2str(SideEncoder) 'side'];
     
+    %2026.11.13
+    if yn_align_T == 'y'% if ON peak exists after OFF peak in RF_black, x(-1)
+        if contains(fn_full_RFMap,'DataBase_RFMap_b')
+            selectWB = 'b';
+        elseif contains(fn_full_RFMap,'DataBase_RFMap_w')
+            selectWB = 'w';
+        else
+            selectWB = input('Which RF-center, type "b" or "w"?\n');
+        end
+        fprintf('x(-1) of RFs that do not follow ON-OFF or OFF-ON rule\n');
+        fprintf('These RFs are %s-centered\n',selectWB);
+        MF.RFMap = align_RF_t(MF.RFMap,selectWB);
+    end
+
     [MF, addtag] = select_encoder(MF,'fn_full_RFMap',fn_full_RFMap);% select number of encoders
     tag = [tag, addtag];
       

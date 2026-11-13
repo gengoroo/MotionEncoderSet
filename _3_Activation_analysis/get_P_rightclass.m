@@ -1,4 +1,4 @@
-function [BestCh, P, P_allCh, Accu, AccuClass] = get_P_rightclass(pn_ChTop)
+function [BestCh, P, P_allCh, Accu, AccuClass, Y] = get_P_rightclass(pn_ChTop)
 
     %------------------------------------------------------------
     % calc_score

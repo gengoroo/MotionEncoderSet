@@ -551,6 +551,8 @@ for id_wb = 1:numel(List_selectWB)
             [MOV_som, rep_vec, netSOM, ListFig, SideEncoder]= som_movie_filter(MOV_adjust,'yn_normW',yn_normW,'yn_plot',yn_plot);%自己組織化して、入力と結果表示 2024.02.03 SideEncoder
             Embedding = reshape(MOV_adjust,[],size(MOV_adjust,4))';
     end
+    %MOV_som = align_RF_t(MOV_som,selectWB);
+
     DataBase_SOM.(selectWB).MOV_som{id_data_som} = MOV_som;
     DataBase_SOM.(selectWB).net{id_data_som} = netSOM;
     DataBase_SOM.(selectWB).rep_vec{id_data_som} = netSOM.IW{1};%rep_vec;
