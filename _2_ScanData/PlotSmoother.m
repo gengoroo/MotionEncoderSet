@@ -3,7 +3,10 @@
 hold on;
 h=gcf;
 List_smooth = findall(h,'Type','Line','LineStyle','-');
-n_ave = input('Type n of movememean');
+n_ave = input('Type n of movememeanm, just enter = 10');
+if isempty(n_ave)
+    n_ave = 10;
+end
 
 for ii = 1:numel(List_smooth)
     XData = List_smooth(ii).XData;
